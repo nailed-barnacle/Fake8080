@@ -9,3 +9,11 @@ Stage five live tests the PCB and hopes the smoke stays inside where it should.
 Targets: to run a modified version of cpudiag.asm, and Dr Li Chen's Tiny Basic.
 
 Note: I will not be implementing a number of 8080 instructions, largely because I never used them, Tiny Basic doesn't use them, and I can't really see a need for them in this day and age: DAA, and all the jump, call, and return instructions conditional upon the parity flag.
+
+ALU_181_base.circ is a Logisim file which will implement most of the 8080. Use the module Fake8080 for the complete system.
+
+cpudiag.asm is a test program by Kelly Smith at Microcosm Associates, modified by me to remove CP/M calls and tests for DAA and parity conditionals.
+
+tiny.raw is Dr Li Chen's Palo Alto Tiny Basic.
+
+NOTE: this emulation writes to the terminal at 0xf100, no checking is required. Data from the keyboard appears at 0xf000, or as 0x00 is there is no character waiting.
