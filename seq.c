@@ -8,11 +8,11 @@
 // 10-13	maths		the desired alu funtion
 // 14		carry		we want the carry to be stored
 // 15		zerosign	we want the zero and sign to be stored
-// 18		intc		do we want to see the C or IC output from the flags
-// 19		nzero		select zero or middle three bits of rst instruction to alu output mpx
-// 20		rst			select rst mpx to alu output
-// 21		inton		true to enable interrupts
-// 22		intoff		true to disable interrupts
+// 16		inton		true to enable interrupts
+// 17		intoff		true to disable interrupts
+// 18		stc			set carry flag
+// 19		cmc			complement carry flag
+// 20		xchg		alias de <=> hl
 // 31		last		this is the last cycle of an instruction
 
 
@@ -128,6 +128,9 @@
 #define M2MAL		S_M + D_MAL + PC + BYPASS
 #define M2MAH		S_M + D_MAH + PC + BYPASS
 
+#define SPHL1		S_H + D_SPH + PC + BYPASS			// copy HL to SP
+#define SPHL2		S_L + D_SPL + PC + BYPASS
+
 #define PCHL1		S_H + D_PCH + PC + BYPASS			// copy HL to PC
 #define PCHL2		S_L + D_PCL	+ PC + BYPASS
 
@@ -215,7 +218,7 @@
 #define CMC4		S_MAH + D_A + PC + BYPASS			// and restore the accumulator
 */
 
-// or the hardware version
+// or the hardware versions
 #define STC1		S_A + D_MAH + PC + STC + CARRYF
 #define CMC1		S_A + D_MAH + PC + CMC + CARRYF
 
@@ -3303,15 +3306,24 @@ static uint32_t control [(64 * 256)] =
 	INC_PCL,
 	INC_PCH + LAST,
 	0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
-	LD_IR,				// condition matched, do the jump
+	LD_IR,
+	INC_PCL,
+	INC_PCH,	// move to low byte of target
+	M2MAL,		// and grab it
 	INC_PCL,
 	INC_PCH,
-	JMP1,
+	M2MAH,		// same for high byte
 	INC_PCL,
-	INC_PCH,
-	JMP2,
-	JMP3 + LAST,
-	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
+	INC_PCH,	// move to next instruction
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCH,
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCL,
+	CALL1,		// copy
+	CALL2 + LAST,
+	0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xcd - CALL
 	LD_IR,
 	INC_PCL,
@@ -3604,15 +3616,24 @@ static uint32_t control [(64 * 256)] =
 	INC_PCL,
 	INC_PCH + LAST,
 	0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
-	LD_IR,				// condition matched, do the jump
+	LD_IR,
+	INC_PCL,
+	INC_PCH,	// move to low byte of target
+	M2MAL,		// and grab it
 	INC_PCL,
 	INC_PCH,
-	JMP1,
+	M2MAH,		// same for high byte
 	INC_PCL,
-	INC_PCH,
-	JMP2,
-	JMP3 + LAST,
-	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
+	INC_PCH,	// move to next instruction
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCH,
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCL,
+	CALL1,		// copy
+	CALL2 + LAST,
+	0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xdd - CALL
 	LD_IR,
 	INC_PCL,
@@ -3919,15 +3940,24 @@ static uint32_t control [(64 * 256)] =
 	INC_PCL,
 	INC_PCH + LAST,
 	0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
-	LD_IR,				// condition matched, do the jump
+	LD_IR,
+	INC_PCL,
+	INC_PCH,	// move to low byte of target
+	M2MAL,		// and grab it
 	INC_PCL,
 	INC_PCH,
-	JMP1,
+	M2MAH,		// same for high byte
 	INC_PCL,
-	INC_PCH,
-	JMP2,
-	JMP3 + LAST,
-	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
+	INC_PCH,	// move to next instruction
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCH,
+	DEC_SPL,
+	DEC_SPH,
+	PUSHPCL,
+	CALL1,		// copy
+	CALL2 + LAST,
+	0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xed - CALL
 	LD_IR,
 	INC_PCL,
@@ -4059,11 +4089,11 @@ static uint32_t control [(64 * 256)] =
 	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xf3 - DI
 	LD_IR,
-	INC_PCL,
+	INC_PCL + INTOFF,
 	INC_PCH + LAST,
 	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 	LD_IR,
-	INC_PCL,
+	INC_PCL + INTOFF,
 	INC_PCH + LAST,
 	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xf4 - CP
@@ -4169,13 +4199,17 @@ static uint32_t control [(64 * 256)] =
 	0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xf9 - SPHL				copy hl to sp, hl remains unchanged
 	LD_IR,
+	SPHL1,
+	SPHL2,
 	INC_PCL,
 	INC_PCH + LAST,
-	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
+	0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 	LD_IR,
+	SPHL1,
+	SPHL2,
 	INC_PCL,
 	INC_PCH + LAST,
-	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
+	0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xfa - JM
 	LD_IR,				// condition not matched; move to next instruction
 	INC_PCL,
@@ -4196,11 +4230,11 @@ static uint32_t control [(64 * 256)] =
 	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xfb - EI
 	LD_IR,
-	INC_PCL,
+	INC_PCL + INTON,
 	INC_PCH + LAST,
 	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 	LD_IR,
-	INC_PCL,
+	INC_PCL + INTON,
 	INC_PCH + LAST,
 	0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,	0,0,0,0,0,0,0,0,
 // 0xfc - CM
